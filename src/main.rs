@@ -28,18 +28,27 @@ fn main() -> io::Result<()> {
         // Calculate the current (1 minute average) CPU load as a percentage
         let cpu_load = sys_info.load_average().0 as f32 / cpu_count as f32 * 100.0;
 
+        // Calculate the color for the current CPU load using a gradient function
+        let color = gradient(Color::Red, Color::Green, cpu_load / 100.0);
         // Set the color of the output based on the CPU load
-        if cpu_load > 75.0 {
-            stdout.set_color(ColorSpec::new().set_fg(Some(Color::Red)))?;
-        } else if cpu_load > 50.0 {
-            stdout.set_color(ColorSpec::new().set_fg(Some(Color::Yellow)))?;
-        } else {
-            stdout.set_color(ColorSpec::new().set_fg(Some(Color::Green)))?;
-        }
-        print!("cpu load: {}", cpu_load);
+        stdout.set_color(ColorSpec::new().set_fg(Some(color)))?;
         // Write the bytes we read to standard output
         let _ = io::stdout().write(&buffer[..bytes_read])?;
     }
 
     Ok(())
+}
+
+// Interpolate between two colors using a linear gradient
+fn gradient(start: Color, end: Color, t: f32) -> Color {
+    let start_r = start.r as f32 / 255.0;
+    let start_g = start.g as f32 / 255.0;
+    let start_b = start.b as f32 / 255.0;
+    let end_r = end.r as f32 / 255.0;
+    let end_g = end.g as f32 / 255.0;
+    let end_b = end.b as f32 / 255.0;
+    let r = (1.0 - t) * start_r + t * end_r;
+    let g = (1.0 - t) * start_g + t * end_g;
+    let b = (1.0 - t) * start_b + t * end_b;
+    Color::RGB(r as u8, g as u8, b as u8)
 }
