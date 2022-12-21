@@ -1,4 +1,5 @@
 use std::io;
+use std::io::{Read, Write};
 
 fn main() -> io::Result<()> {
     let mut buffer = [0; 1024];
@@ -13,9 +14,8 @@ fn main() -> io::Result<()> {
         }
 
         // Write the bytes we read to standard output
-        io::stdout().write_all(&buffer[..bytes_read])?;
+        let _ = io::stdout().write(&buffer[..bytes_read])?;
     }
-
     Ok(())
 }
 
