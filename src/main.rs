@@ -61,6 +61,7 @@ fn print_colored(
         result
     };
     if !cpu_loads.is_empty() {
+        // average all the measurements together
         *last_load = cpu_loads.iter().copied().sum::<f32>() / cpu_loads.len() as f32;
     }
     let color = get_color(*last_load / 100.0);
