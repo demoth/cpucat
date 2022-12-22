@@ -36,7 +36,10 @@ fn main() -> io::Result<()> {
         match stdin.read_line(&mut buffer) {
             Ok(0) => exit(0),
             Ok(_) => {
-                print_colored(&cpu_rx, &buffer, &mut stdout, &mut last_load);
+                if let Err(e) = print_colored(&cpu_rx, &buffer, &mut stdout, &mut last_load) {
+                    println!("Error {e}");
+                    exit(1)
+                }
                 buffer.clear();
             }
             Err(e) => {
@@ -52,7 +55,7 @@ fn print_colored(
     buffer: &str,
     stdout: &mut StandardStream,
     last_load: &mut f32,
-) {
+) -> anyhow::Result<()> {
     let cpu_loads = {
         let mut result = vec![];
         while let Ok(v) = cpu_rx.try_recv() {
@@ -65,8 +68,10 @@ fn print_colored(
         *last_load = cpu_loads.iter().copied().sum::<f32>() / cpu_loads.len() as f32;
     }
     let color = get_color(*last_load / 100.0);
-    let _ignore_error = stdout.set_color(ColorSpec::new().set_fg(Some(color)));
-    let _ignore_error = write!(stdout, "{buffer}");
+    stdout.set_color(ColorSpec::new().set_fg(Some(color)))?;
+    write!(stdout, "{buffer}")?;
+
+    Ok(())
 }
 
 // Interpolate between two colors using a linear gradient

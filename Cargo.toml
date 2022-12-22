@@ -10,3 +10,4 @@ default-run = "cpucat"
 [dependencies]
 termcolor = "1.1.3"
 sysinfo = "0.27.1"
+anyhow = "1.0.68"
