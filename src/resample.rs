@@ -80,11 +80,19 @@ mod tests {
         }
 
         #[test]
-        fn test_interpolate() {
+        fn large() {
             let large = resample(vec![0.0, 1.0], 5_000_000);
             assert_eq!(large.first(), Some(&0.0));
             assert_eq!(large.get(2_500_000), Some(&0.5000001));
             assert_eq!(large.last(), Some(&1.0));
+        }
+
+        #[test]
+        fn one_to_many() {
+            assert_eq!(
+                resample(vec![42.0], 10),
+                vec![42.0, 42.0, 42.0, 42.0, 42.0, 42.0, 42.0, 42.0, 42.0, 42.0]
+            )
         }
     }
 
@@ -111,6 +119,10 @@ mod tests {
                 resample(vec![1.0, 3.0, 2.0, 10.0], 3),
                 vec![1.5, 2.5, 8.000001]
             );
+        }
+        #[test]
+        fn two_to_one() {
+            assert_eq!(resample(vec![1.0, 10.0], 1), vec![5.5]);
         }
     }
 }
