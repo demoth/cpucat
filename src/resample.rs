@@ -13,11 +13,9 @@ pub fn resample(source: Vec<f32>, expected_len: usize) -> Vec<f32> {
             let mut source_index: f64 = 0.0;
             for _i in 0..expected_len {
                 let left_index = source_index.floor() as usize;
-                let value = source[left_index]
-                    + source
-                        .get(left_index + 1)
-                        .map(|v| v * source_index.fract() as f32)
-                        .unwrap_or(0.0);
+                let lerp_percent = source_index.fract() as f32;
+                let value = source[left_index] * (1.0 - lerp_percent)
+                    + source.get(left_index + 1).copied().unwrap_or(0.0) * lerp_percent;
                 source_index += step;
                 result.push(value);
             }
@@ -73,10 +71,10 @@ mod tests {
         #[test]
         fn complicated_frac() {
             assert_eq!(
-                resample(vec![0.0, 1.0, 2.0, 3.0], 14),
+                resample(vec![0.0, 1.0, 3.0, 2.0], 14),
                 vec![
-                    0.0, 0.23076923, 0.46153846, 0.6923077, 0.9230769, 1.3076923, 1.7692308,
-                    2.2307692, 2.6923077, 2.2307692, 2.923077, 3.6153846, 4.3076925, 3.0
+                    0.0, 0.23076923, 0.46153846, 0.6923077, 0.9230769, 1.3076923, 1.7692307,
+                    2.2307694, 2.692308, 2.923077, 2.6923077, 2.4615383, 2.2307692, 2.0
                 ]
             );
         }
@@ -109,7 +107,10 @@ mod tests {
 
         #[test]
         fn one_smaller() {
-            assert_eq!(resample(vec![1.0, 3.0, 2.0, 10.0], 3), vec![1.5, 2.5, 8.000001]);
+            assert_eq!(
+                resample(vec![1.0, 3.0, 2.0, 10.0], 3),
+                vec![1.5, 2.5, 8.000001]
+            );
         }
     }
 }
