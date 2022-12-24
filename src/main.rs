@@ -1,10 +1,11 @@
 mod resample;
 
-use std::io::{self, stdin, BufRead, BufReader};
-use std::io::{Read, Write};
-use std::process::exit;
-use std::sync::mpsc::{sync_channel, SendError, TrySendError};
-use std::time::Duration;
+use std::{
+    io::{self, stdin, BufRead, BufReader, Write},
+    process::exit,
+    sync::mpsc::{sync_channel, TrySendError},
+    time::Duration,
+};
 use sysinfo::{CpuExt, System, SystemExt};
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
@@ -60,7 +61,6 @@ fn print_colored(
     stdout: &mut StandardStream,
     last_load: &mut f32,
 ) -> anyhow::Result<()> {
-
     // So we don't lose cpu load information on empty lines
     if buffer.trim().is_empty() {
         write!(stdout, "{buffer}")?;
