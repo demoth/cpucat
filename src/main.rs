@@ -1,4 +1,3 @@
-mod resample;
 
 use std::{
     io::{self, stdin, BufRead, BufReader, Write},
@@ -9,7 +8,7 @@ use std::{
 use sysinfo::{CpuExt, System, SystemExt};
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
-use crate::resample::resample;
+use cpucat::resample;
 
 fn main() -> io::Result<()> {
     let mut stdout = StandardStream::stdout(ColorChoice::Always);
