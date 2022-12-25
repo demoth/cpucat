@@ -73,7 +73,7 @@ fn print_colored(
         }
         result
     };
-    if !cpu_load_samples.len() > 1 {
+    if cpu_load_samples.len() > 1 {
         let chars = buffer.chars().collect::<Vec<_>>();
         *last_load = *cpu_load_samples.last().unwrap();
         let load_per_char = resample(cpu_load_samples, chars.len());
