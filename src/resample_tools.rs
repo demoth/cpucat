@@ -1,61 +1,51 @@
-pub fn resample(source: Vec<f32>, expected_len: usize) -> Vec<f32> {
-    assert!(expected_len > 0);
+pub fn resample(source: Vec<f32>, target_len: usize) -> Vec<f32> {
+    assert!(target_len > 0);
     assert!(!source.is_empty());
 
-    match source.len().cmp(&expected_len) {
-        // No work required
-        std::cmp::Ordering::Equal => source,
-
-        // Interpolate
-        std::cmp::Ordering::Less => {
-            let mut result = Vec::with_capacity(expected_len);
-            let step = (source.len() - 1) as f64 / (expected_len - 1) as f64;
-            let mut source_index: f64 = 0.0;
-            for _i in 0..expected_len {
-                let left_index = source_index.floor() as usize;
-                let lerp_percent = source_index.fract() as f32;
-                let value = source[left_index] * (1.0 - lerp_percent)
-                    + source.get(left_index + 1).copied().unwrap_or(0.0) * lerp_percent;
-                source_index += step;
-                result.push(value);
-            }
-            result
-        }
-
-        // Downsample
-        std::cmp::Ordering::Greater => {
-            if expected_len == 1 {
-                // single element being the average
-                vec![source.iter().copied().sum::<f32>() / source.len() as f32]
-            } else {
-                let mut result = Vec::with_capacity(expected_len);
-                let step = source.len() as f64 / expected_len as f64;
-                assert!(step > 1.0);
-                let mut source_index: f64 = 0.0;
-                for _i in 0..expected_len {
-                    let left_index = source_index.floor() as usize;
-                    let left_fract = 1.0 - source_index.fract() as f32;
-                    source_index += step;
-                    let mut right_index = source_index.floor() as usize;
-                    let mut right_fract = source_index.fract() as f32;
-                    if right_index == source.len() {
-                        right_index -= 1;
-                        right_fract = 1.0;
-                    }
-
-                    let mut values = source[left_index..=right_index].to_vec();
-                    *values.first_mut().unwrap() *= left_fract;
-                    *values.last_mut().unwrap() *= right_fract;
-
-                    let value: f32 = values.iter().copied().sum::<f32>()
-                        / ((values.len() - 2) as f32 + left_fract + right_fract);
-                    result.push(value);
-                }
-
-                result
-            }
-        }
+    if source.len() == target_len {
+        return source;
     }
+
+    // how fast the cursor should move over the source vector
+    // relative to the target vector
+    // e.g. if target is 3 elements wide and the source is 4,
+    // then the target vec is expected to be composed of
+    // [the 0th element, the average of 1st and 2nd, the 3rd]
+    // so the step is then 1.5.
+    let step = (source.len() - 1) as f64 / (target_len - 1).max(1) as f64;
+    let mut result = Vec::with_capacity(target_len);
+
+    for i in 0..target_len {
+        result.push(lerp(&source, i as f32 * step as f32));
+    }
+
+    result
+}
+
+/// Linearly interpolates points to the left and to the right of the position
+/// 
+/// e.g.
+/// ```
+/// # use cpucat::resample_tools::lerp;
+/// let s = [1.0, 10.0, 20.0, 30.0];
+/// // pos   0.0  1.0   2.0   3.0
+/// 
+/// // 0.9 ------^
+/// assert_eq!(lerp(&s, 0.9), 9.1);
+/// 
+/// // 2.2 ---------------^
+/// assert_eq!(lerp(&s, 2.2), 22.0);
+/// ```
+pub fn lerp(source: &[f32], positon: f32) -> f32 {
+    let left_point = positon.floor() as usize;
+    let left_value = source[left_point.clamp(0, source.len() - 1)];
+    let left_fract = 1.0 - positon.fract();
+
+    let right_point = positon.ceil() as usize;
+    let right_value = source[right_point.clamp(0, source.len() - 1)];
+    let right_fract = positon.fract();
+
+    left_value * left_fract + right_value * right_fract
 }
 
 #[cfg(test)]
@@ -73,8 +63,8 @@ mod tests {
             assert_eq!(
                 resample(vec![0.0, 1.0, 3.0, 2.0], 14),
                 vec![
-                    0.0, 0.23076923, 0.46153846, 0.6923077, 0.9230769, 1.3076923, 1.7692307,
-                    2.2307694, 2.692308, 2.923077, 2.6923077, 2.4615383, 2.2307692, 2.0
+                    0.0, 0.23076923, 0.46153846, 0.6923077, 0.9230769, 1.3076923, 1.7692308,
+                    2.2307692, 2.692308, 2.9230769, 2.6923077, 2.4615386, 2.2307692, 2.0
                 ]
             );
         }
@@ -91,7 +81,7 @@ mod tests {
         fn one_to_many() {
             assert_eq!(
                 resample(vec![42.0], 10),
-                vec![42.0, 42.0, 42.0, 42.0, 42.0, 42.0, 42.0, 42.0, 42.0, 42.0]
+                [42.0, 42.0, 42.0, 42.0, 42.0, 42.0, 42.0, 42.0, 42.0, 42.0]
             )
         }
     }
@@ -109,20 +99,18 @@ mod tests {
         use crate::resample;
 
         #[test]
-        fn average() {
-            assert_eq!(resample(vec![1.0, 3.0, 2.0], 1), vec![2.0]);
+        fn one_is_first() {
+            assert_eq!(resample(vec![1.0, 3.0, 2.0], 1), vec![1.0]);
         }
 
         #[test]
         fn one_smaller() {
-            assert_eq!(
-                resample(vec![1.0, 3.0, 2.0, 10.0], 3),
-                vec![1.5, 2.5, 8.000001]
-            );
+            assert_eq!(resample(vec![1.0, 2.0, 3.0, 4.0], 3), vec![1.0, 2.5, 4.0]);
         }
+
         #[test]
-        fn two_to_one() {
-            assert_eq!(resample(vec![1.0, 10.0], 1), vec![5.5]);
+        fn large_overlap() {
+            assert_eq!(resample(vec![1.0, 2.0, 3.0, 4.0, 5.0], 2), vec![1.0, 5.0]);
         }
     }
 }
