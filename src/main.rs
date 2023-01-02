@@ -1,10 +1,14 @@
-use std::io::{self, stdin, BufRead, BufReader};
-use std::io::{Read, Write};
-use std::process::exit;
-use std::sync::mpsc::{sync_channel, SendError, TrySendError};
-use std::time::Duration;
+
+use std::{
+    io::{self, stdin, BufRead, BufReader, Write},
+    process::exit,
+    sync::mpsc::{sync_channel, TrySendError},
+    time::Duration,
+};
 use sysinfo::{CpuExt, System, SystemExt};
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
+
+use cpucat::resample;
 
 fn main() -> io::Result<()> {
     let mut stdout = StandardStream::stdout(ColorChoice::Always);
@@ -56,20 +60,33 @@ fn print_colored(
     stdout: &mut StandardStream,
     last_load: &mut f32,
 ) -> anyhow::Result<()> {
-    let cpu_loads = {
-        let mut result = vec![];
+    // So we don't lose cpu load information on empty lines
+    if buffer.trim().is_empty() {
+        write!(stdout, "{buffer}")?;
+    }
+
+    let cpu_load_samples = {
+        let mut result = vec![*last_load];
         while let Ok(v) = cpu_rx.try_recv() {
             result.push(v)
         }
         result
     };
-    if !cpu_loads.is_empty() {
-        // average all the measurements together
-        *last_load = cpu_loads.iter().copied().sum::<f32>() / cpu_loads.len() as f32;
+    if cpu_load_samples.len() > 1 {
+        let chars = buffer.chars().collect::<Vec<_>>();
+        *last_load = *cpu_load_samples.last().unwrap();
+        let load_per_char = resample(cpu_load_samples, chars.len());
+
+        // FIXME: spaces still lose information, is it ok?
+        for (cpu_load, c) in load_per_char.into_iter().zip(chars) {
+            let color = get_color(cpu_load / 100.0);
+            stdout.set_color(ColorSpec::new().set_fg(Some(color)))?;
+            stdout.write_all(c.to_string().as_bytes())?;
+        }
+    } else {
+        // last color from the previous calculation still applies
+        write!(stdout, "{buffer}")?;
     }
-    let color = get_color(*last_load / 100.0);
-    stdout.set_color(ColorSpec::new().set_fg(Some(color)))?;
-    write!(stdout, "{buffer}")?;
 
     Ok(())
 }
