@@ -1,9 +1,15 @@
 # CPU cat
 
-`cat` program with coloring based on the cpu usage.
+`cat` program with output coloring based on the cpu usage.
 
-Intended for use with long-running processes (like `mvn install`) to highlight hot places.
+Intended for use with long-running processes (like `mvn package`) to highlight hot places.
 
-Example use:
+### Example use:
 
-    mvn clean install | cpucat
+    cargo build | cpucat
+
+![sample output](docs/sample.jpg)
+
+### Installation
+
+Simply build (`cargo build --release`) and copy the executable `cp target/release/cpucat /usr/bin`
