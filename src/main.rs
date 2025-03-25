@@ -5,7 +5,7 @@ use std::{
     sync::mpsc::{sync_channel, TrySendError},
     time::Duration,
 };
-use sysinfo::{CpuExt, System, SystemExt};
+use sysinfo::{System};
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
 use cpucat::resample;
@@ -23,16 +23,16 @@ fn main() -> io::Result<()> {
     // This thread will provide a stream of cpu measurement values
     std::thread::spawn(move || {
         let mut sys = System::new();
-        sys.refresh_cpu();
+        sys.refresh_cpu_all();
 
         loop {
             if let Err(TrySendError::Disconnected(..)) =
-                cpu_tx.try_send(sys.global_cpu_info().cpu_usage())
+                cpu_tx.try_send(sys.global_cpu_usage())
             {
                 break;
             }
             std::thread::sleep(Duration::from_millis(100));
-            sys.refresh_cpu();
+            sys.refresh_cpu_all();
         }
     });
 

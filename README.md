@@ -10,6 +10,10 @@ Intended for use with long-running processes (like `mvn package`) to highlight h
 
 ![sample output](docs/sample.jpg)
 
+### Building
+
+Use cargo: `cargo build --release`
+
 ### Installation
 
-Simply build (`cargo build --release`) and copy the executable `cp target/release/cpucat /usr/bin`
+Either use cargo: `cargo install --path .` or build and copy the executable `cp target/release/cpucat /usr/bin`

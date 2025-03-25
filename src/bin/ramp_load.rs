@@ -1,7 +1,5 @@
 use std::time::{Duration, Instant};
 
-use sysinfo::SystemExt;
-
 /// Generates linearly increasing and then decreasing load
 /// Cpu load graph is supposed to look like a step-wise approximation of a triangle wave
 fn main() {
